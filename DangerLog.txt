@@ -1,0 +1,57 @@
+Danger Log:
+
+  0. Safty level: Basic Guarantee, any allocation is done by using STL, soif any error occurs, memory won't leak.
+  
+  1.
+  Problem:
+  System calls like listen, accept, recv could fail due to bad connection or invalid address/port.
+  How we solved it:
+  System call is the base of the whole program, if it fails, we print out the detailed error message and shut down the program. Since continue to run the program without successful system connection is bad.
+
+  2.
+  Problem:
+  The program may leak memory due to immediate shut down after error
+  How we solved it:
+  To avoid that, we made a fully usage of STL, which is based on RAII concept. For example, we used std::list and std::map to implement our cache, the standard lib will take care of memory allocations and deallocations. We used close() to every sockfd we used, for the listener sockfd, we close it each time before the program returns manually, for the sockfd to server and the sockfd to browser, we give them to each thread and let each thread close them.
+
+  3.
+  Problem:
+  Thread synchronize is crutial for memory managing
+  How we solved it:
+  We detach every thread after it is built and send it to run the entry function, so that after finishing its job, it would close itself.
+    
+  4.
+  Problem:
+  Can not get full chunk of data when we are recieveing the response from the origin server
+  How we solved it:
+  We built a while loop in our program and every time we will recieve message from the origin server, we will initialize a buffer of size 65536 to store it and we actually parsed the message length from the response header so we are able to determin when to stop recieving the response from the server
+
+  5.
+  Problem:
+  The cache will cache all kinds of responses which is 200 ok and will just naively get them out according to the LRU principle
+  How we solved it:
+  Every time we recieve a response from the server, we will parse it and determine if we can cache the response. If there is no-store or private field in the cache-control field, we will not put it in cache. We will also calculate the expire time of the response before we store it. For revalidation, if there is max-age=0 or no-cache fields in cache-control field, we will store them in our cache, and for every time we get them out, we will firstly check if they have expired. If we recieve a 304-not modified from the original server, it means that it is still valid and we will just using the value stored in the cache. And if we recieve other responses during validation, we will regard this value as not valid and will send a request to the orgin server to get back the newest valid value.Besides this, if the response from the server contains must-revalidate field, it actually means that we can store the value in the cache, and when we request it again, if it is not expire, we can just use its value, and when it expires, we will need to revalidate it. 
+
+  6.
+  Problem:
+  After we have connected to a CONNECT request, we can not disconnect
+  How we solved it:
+  Typically a connect is supposed to be a long lasting one, the key is to keep it alive and don't let is block other requests, we solved this problem by using multi thread, each time a new request arrives, we spawn a new thread to handle it. 
+
+  7.
+  Problem:
+  There will be a risk when many threads are trying to use a cache at the same time
+  How we solved it:
+  We used a mutex to lock any calling to class cache's method get, put. Since those tow methods will update the cache.
+
+  8.
+  Problem:
+  There will be a risk when muti processes are writing to the log file
+  How we solved it:
+  We add mutex and lock guard to serialize any operations on the logger object, which means any thread will visit methods in class logger in serialize.
+
+  9.
+  Problem:
+  Using docker to run the program
+  How we solved it:
+  Editing the docker files and finally we figured out how to let our program run by sudo docker compose up

@@ -1,0 +1,14 @@
+1.http://httpbin.org/forms/post
+function: General function of GET and POST. Cacheable and considered never expire, hit in cache and send back the next time.
+
+2.http://www.httpwatch.com/httpgallery/chunked/chunkedimage.aspx
+function: General function of chuncked GET. Not cacheable because of no store.
+
+3.https://www.youtube.com/channel/UCkjrBN_GAjFJyVvjcI07KkQ
+function: General function of connect, multi thread will be spawned to handle it.
+
+4.https://www.gov.cn/
+funcion: Mixed GET, POST and CONNECT. Test the multi thread. Should be able to load successfully and have a clean looking log file.
+
+5.http://people.duke.edu/~bmr23/ece568/class.html
+function: Basic testing for cache. First cached, expires at Sat Feb 29 11:03:19 2020, then in cache, valid.
